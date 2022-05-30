@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/app_gallery_nav"
+    app:startDestination="@id/app_gallery">
+    <fragment
+        android:id="@+id/app_gallery"
+        android:name="com.customgallery.customgallery.fragments.AppGallery"
+        android:label="@string/app_gallery"
+        tools:layout="@layout/fragment_app_gallery" />
+    <fragment
+        android:id="@+id/media_file_list"
+        android:name="com.customgallery.customgallery.fragments.MediaFilesListFragment"
+        android:label="@string/media_list"
+        tools:layout="@layout/fragment_media_files_list"></fragment>
+</navigation>
