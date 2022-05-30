@@ -16,7 +16,7 @@ import javax.inject.Inject
 class MediaViewModel @Inject constructor(
     repository: MediaRepository
 ) : ViewModel() {
-    var loadAllBuckets = MutableLiveData<String>()
+    var loadAllBuckets = MutableLiveData<String>(null)
     var allBuckets: LiveData<Resource<List<Bucket>>> = Transformations.switchMap(loadAllBuckets)
     {
         if (it == null) {
@@ -28,13 +28,14 @@ class MediaViewModel @Inject constructor(
 
     //Get Files with Id
     var bucketId = MutableLiveData<String>()
+    var fileType=MutableLiveData<Int>()
 
     var files: LiveData<Resource<List<LocalMediaFile>>> = Transformations.switchMap(bucketId)
     {
         if (it == null) {
             return@switchMap AbsentLiveData.create<Resource<List<LocalMediaFile>>>()
         } else {
-            return@switchMap bucketId.value?.let { it1 -> repository.getFilesWithId(it1, 1) }
+            return@switchMap bucketId.value?.let { it1 -> repository.getFilesWithId(it1, fileType.value!!) }
         }
     }
 

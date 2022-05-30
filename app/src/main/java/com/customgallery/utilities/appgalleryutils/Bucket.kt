@@ -1,5 +1,7 @@
 package com.customgallery.utilities.appgalleryutils
 
+import android.graphics.Bitmap
+
 class Bucket {
     var id = 0  //id=-1 means all images id=-2 means all video
     var name: String? = null
@@ -8,4 +10,5 @@ class Bucket {
     var filesCount:Int?=0
     var imageThumbnail:String?=""
     var fileType:Int?=0 //fileType 1 mean image 2 mean videos
+    var videoThumbnail:Bitmap?=null
 }

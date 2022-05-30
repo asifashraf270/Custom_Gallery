@@ -17,11 +17,13 @@
 
         <ImageView
             android:id="@+id/image_thumbnail"
+            fileType="@{bucketdata.fileType}"
+            videothumbnail="@{bucketdata.videoThumbnail}"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:scaleType="fitXY"
             android:src="@drawable/image_placeholder"
-            app:image="@{bucketdata.imageThumbnail}"
+            app:imageUrl="@{bucketdata.imageThumbnail}"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"></ImageView>
@@ -43,5 +45,16 @@
             android:text="@{``+ bucketdata.filesCount}"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
+
+        <ImageView
+            videoFile="@{bucketdata.fileType}"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:src="@drawable/video_camera"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"></ImageView>
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>

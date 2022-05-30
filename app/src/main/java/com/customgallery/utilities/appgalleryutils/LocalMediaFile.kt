@@ -1,14 +1,16 @@
 package com.customgallery.utilities.appgalleryutils
 
+import android.graphics.Bitmap
 import android.os.Parcel
 import android.os.Parcelable
+import java.io.Serializable
 
-class LocalMediaFile : Parcelable {
+class LocalMediaFile : Serializable {
     var bucketId = 0
     var mediaPath: String? = null
     var id = 0
-    var mediaType: String? = null
-    var videoThumbNail: String? = null
+    var mediaType: Int? = null
+    var videoThumbNail: Bitmap? = null
 
 
     var isSelected = false
@@ -22,8 +24,8 @@ class LocalMediaFile : Parcelable {
     constructor(
         bucketId: Int,
         mediaPath: String?,
-        mediaType: String?,
-        videoThumbNail: String?,
+        mediaType: Int?,
+        videoThumbNail: Bitmap?,
         id: Int,
         fileUri: String?
     ) {
@@ -36,42 +38,11 @@ class LocalMediaFile : Parcelable {
     }
 
     constructor() {}
-    constructor(`in`: Parcel) {
-        id = `in`.readInt()
-        bucketId = `in`.readInt()
-        mediaPath = `in`.readString()
-        mediaType = `in`.readString()
-        videoThumbNail = `in`.readString()
-        fileUri = `in`.readString()
-        videoDuration = `in`.readString()
-        date = `in`.readString()
-    }
 
-    override fun describeContents(): Int {
-        return 0
-    }
 
-    override fun writeToParcel(dest: Parcel, flags: Int) {
-        dest.writeInt(id)
-        dest.writeInt(bucketId)
-        dest.writeString(mediaPath)
-        dest.writeString(mediaType)
-        dest.writeString(videoThumbNail)
-        dest.writeString(fileUri)
-        dest.writeString(videoDuration)
-        dest.writeString(date)
-    }
-
-    companion object CREATOR : Parcelable.Creator<LocalMediaFile> {
-        var VIDEO_TYPE = "3"
-        var IMAGE_TYPE = "1"
-        override fun createFromParcel(parcel: Parcel): LocalMediaFile {
-            return LocalMediaFile(parcel)
-        }
-
-        override fun newArray(size: Int): Array<LocalMediaFile?> {
-            return arrayOfNulls(size)
-        }
+    companion object {
+        var VIDEO_TYPE = 2
+        var IMAGE_TYPE = 1
     }
 
 

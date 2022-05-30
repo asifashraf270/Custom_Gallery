@@ -9,10 +9,12 @@ import android.provider.MediaStore
 import android.util.Log
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
+import com.customgallery.utilities.AppLogger
 import com.customgallery.utilities.Resource
 import com.customgallery.utilities.appgalleryutils.Bucket
 import com.customgallery.utilities.appgalleryutils.LocalMediaFile
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -22,10 +24,8 @@ private const val TAG = "MediaRepository"
 class MediaRepository @Inject constructor(
     val contentResolver: ContentResolver, val context: Application
 ) {
-    fun getImageBuckets(): MutableLiveData<Resource<List<Bucket>>>? {
-        var imagesBuckets = MediatorLiveData<Resource<List<Bucket>>>()
+    fun getImageBuckets(): List<Bucket>? {
         var imagesBucketList = mutableListOf<Bucket>()
-        imagesBuckets.value = Resource.loading()
         val images = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
         val projection = arrayOf(
             MediaStore.Images.Media.BUCKET_ID,
@@ -45,7 +45,7 @@ class MediaRepository @Inject constructor(
         )
 
         if (cursor == null) {
-            imagesBuckets.value = Resource.success(imagesBucketList, "Success")
+            return imagesBucketList
 //            return imagesBuckets.value= Resource.success()
         }
         val addedBucketIds: MutableList<String> = ArrayList()
@@ -68,22 +68,23 @@ class MediaRepository @Inject constructor(
                     imagesBucketList.add(b)
                     addedBucketIds.add("" + b.id)
                 }
-                imagesBuckets.value = Resource.success(imagesBucketList, "Success")
             }
 
             cursor.close()
         }
-        return imagesBuckets
+        return imagesBucketList
     }
 
-    fun getVideoBuckets(): MutableLiveData<Resource<List<Bucket>>>? {
-        var videoBucket = MediatorLiveData<Resource<List<Bucket>>>()
+    @SuppressLint("Range")
+    fun getVideoBuckets(): List<Bucket>? {
         var videoBucketList = mutableListOf<Bucket>()
         val images = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
         val projection = arrayOf(
             MediaStore.Video.Media.BUCKET_ID,
             MediaStore.Video.Media.BUCKET_DISPLAY_NAME,
-            MediaStore.Video.Media.DATA,MediaStore.Video.Thumbnails.DATA
+            MediaStore.Video.Media.DATA,
+            MediaStore.Video.Thumbnails.DATA,
+            MediaStore.Video.Media._ID
         )
         val BUCKET_ORDER_BY = MediaStore.Video.Media.BUCKET_DISPLAY_NAME + " ASC"
         val BUCKET_GROUP_BY = "1) GROUP BY 1,(2"
@@ -97,7 +98,7 @@ class MediaRepository @Inject constructor(
         )
 //        val buckets: MutableList<Bucket> = ArrayList()
         if (cursor == null) {
-            videoBucket.value = Resource.success(videoBucketList, "Success")
+            return videoBucketList
         }
         val addedBucketIds: MutableList<String> = ArrayList()
         if (cursor != null) {
@@ -109,20 +110,31 @@ class MediaRepository @Inject constructor(
                 b.id = cursor.getInt(bucketIdColumnIndex)
                 b.name = cursor.getString(bucketColumnIndex)
                 b.filesCount = getCount(context, images, b.id.toString())
-                b.fileType = 2
+                b.fileType = LocalMediaFile.VIDEO_TYPE
                 val thumbnail = cursor.getColumnIndex(MediaStore.Video.Thumbnails.DATA)
-
+                val idColumnIndex = cursor.getInt(cursor.getColumnIndex(MediaStore.Video.Media._ID))
+                var thumbnailBitmap = MediaStore.Video.Thumbnails.getThumbnail(
+                    contentResolver,
+                    idColumnIndex.toLong(),
+                    MediaStore.Video.Thumbnails.MINI_KIND,
+                    null
+                )
+                b.videoThumbnail = thumbnailBitmap
                 b.imageThumbnail = cursor.getString(thumbnail)
                 if (b.name != null && !addedBucketIds.contains("" + b.id)) {
                     videoBucketList.add(b)
                     addedBucketIds.add("" + b.id)
                 }
             }
-            videoBucket.value = Resource.success(videoBucketList, "successs")
             cursor.close()
 
         }
-        return videoBucket
+        return videoBucketList
+    }
+
+    fun getAllImagesCount(contentUri: Uri): Int {
+        context.contentResolver.query(contentUri, null, null, null, null)
+            .use { cursor -> return if (cursor == null || cursor.moveToFirst() === false) 0 else cursor.count }
     }
 
     fun getCount(context: Context, contentUri: Uri, bucketId: String): Int {
@@ -165,17 +177,23 @@ class MediaRepository @Inject constructor(
                 cursor.getColumnIndex(MediaStore.Video.Media.BUCKET_DISPLAY_NAME)
             val dataColumnIndex = cursor.getColumnIndex(MediaStore.Video.Media.DATA)
             val thumbnail = cursor.getColumnIndex(MediaStore.Video.Thumbnails.DATA)
-            val thumbnailPath = cursor.getString(thumbnail)
+//            val thumbnailPath = cursor.getString(thumbnail)
             val idColumnIndex = cursor.getInt(cursor.getColumnIndex(MediaStore.Video.Media._ID))
             val videoDuration =
                 cursor.getString(cursor.getColumnIndex(MediaStore.Video.VideoColumns.DURATION))
             val date =
                 cursor.getString(cursor.getColumnIndex(MediaStore.Video.VideoColumns.DATE_ADDED))
+            var thumbnailBitmap = MediaStore.Video.Thumbnails.getThumbnail(
+                contentResolver,
+                idColumnIndex.toLong(),
+                MediaStore.Video.Thumbnails.MINI_KIND,
+                null
+            )
             val localMediaFile = LocalMediaFile(
                 cursor.getInt(bucketIdColumnIndex),
                 cursor.getString(dataColumnIndex),
                 LocalMediaFile.VIDEO_TYPE,
-                thumbnailPath,
+                thumbnailBitmap,
                 idColumnIndex,
                 ""
             )
@@ -226,7 +244,7 @@ class MediaRepository @Inject constructor(
                 cursor.getInt(bucketIdColumnIndex),
                 cursor.getString(dataColumnIndex),
                 LocalMediaFile.IMAGE_TYPE,
-                thumbnailPath,
+                null,
                 idColumnIndex,
                 "" /*Uri.fromFile(new File(thumbnailPath)).toString()*/
             )
@@ -244,14 +262,29 @@ class MediaRepository @Inject constructor(
         filesList.value = Resource.loading()
         var allImages = getAllImagesFile()
         var allVideos = getAllVideoFiles()
-        when (types) {
-            1 -> {
-                filesList.value = Resource.success(allImages?.let { getFiles(id.toInt(), it) }, "Success")
+        when (id.toInt()) {
+            -1 -> {
+                filesList.value = Resource.success(allImages, "Success")
             }
-            2 -> {
-                filesList.value = Resource.success(allVideos?.let { getFiles(id.toInt(), it) }, "success")
+            -2 -> {
+                filesList.value = Resource.success(allVideos, "Success")
             }
+            else -> {
+                when (types) {
+                    1 -> {
+                        filesList.value =
+                            Resource.success(allImages?.let { getFiles(id.toInt(), it) }, "Success")
+                    }
+                    2 -> {
+                        filesList.value =
+                            Resource.success(allVideos?.let { getFiles(id.toInt(), it) }, "success")
+                    }
+
+                }
+            }
+
         }
+
         return filesList
 
     }
@@ -267,8 +300,9 @@ class MediaRepository @Inject constructor(
     }
 
 
-    fun getAllBuckets(): MutableLiveData<Resource<List<Bucket>>> {
+    fun getAllBuckets(): MediatorLiveData<Resource<List<Bucket>>> {
         var bucketsList = MediatorLiveData<Resource<List<Bucket>>>()
+        bucketsList.value=Resource.loading()
         var buckets: MutableList<Bucket> = mutableListOf()
         var imagesBuckets = getImageBuckets()
         var videoBuckets = getVideoBuckets()
@@ -276,17 +310,21 @@ class MediaRepository @Inject constructor(
         allImages.id = -1
         allImages.name = "All images"
         allImages.fileType = 1
-        allImages.filesCount = 1000
-        allImages.imageThumbnail = imagesBuckets?.value?.data?.get(0)?.imageThumbnail
+        allImages.filesCount = getAllImagesCount(MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+        AppLogger.errorMessage(TAG, allImages.filesCount.toString())
+        allImages.imageThumbnail = imagesBuckets?.get(0)?.imageThumbnail
         buckets.add(allImages)
         var allVideos = Bucket()
         allVideos.id = -2;
         allVideos.name = "All Videos"
         allVideos.fileType = 2
-        allVideos.imageThumbnail = videoBuckets?.value?.data?.get(0)?.imageThumbnail
+        allVideos.filesCount = getAllImagesCount(MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
+        allVideos.imageThumbnail = videoBuckets?.get(0)?.imageThumbnail
+        allVideos.videoThumbnail = videoBuckets?.get(0)?.videoThumbnail
         buckets.add(allVideos)
-        imagesBuckets?.value?.data?.let { buckets.addAll(it) }
-        videoBuckets?.value?.data?.let { buckets.addAll(it) }
+        imagesBuckets?.let { buckets.addAll(it) }
+        videoBuckets?.let { buckets.addAll(it) }
+
         bucketsList.value = Resource.success(buckets, "Success")
         return bucketsList
 

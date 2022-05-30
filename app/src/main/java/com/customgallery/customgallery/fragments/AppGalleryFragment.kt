@@ -18,6 +18,7 @@ import com.customgallery.R
 import com.customgallery.customgallery.MediaViewModel
 import com.customgallery.databinding.FragmentAppGalleryBinding
 import com.customgallery.utilities.AppLogger
+import com.customgallery.utilities.PermissionUtils
 import com.customgallery.utilities.Status
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -35,6 +36,7 @@ class AppGallery : Fragment(), View.OnClickListener {
     override fun onResume() {
         super.onResume()
     }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -58,6 +60,16 @@ class AppGallery : Fragment(), View.OnClickListener {
         adapter.onclickListener = this
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        AppLogger.errorMessage(TAG, "onDestroy")
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        AppLogger.errorMessage(TAG, "onDestroyView")
+    }
+
     fun eventObserverListener() {
         viewModel.loadAllBuckets.value = ""
         viewModel.allBuckets.observe(viewLifecycleOwner) {
@@ -75,21 +87,16 @@ class AppGallery : Fragment(), View.OnClickListener {
                 }
             }
         }
-        viewModel.bucketId.observe(viewLifecycleOwner){
-            AppLogger.errorMessage(TAG,it)
+        viewModel.bucketId.observe(viewLifecycleOwner) {
+            AppLogger.errorMessage(TAG, it)
         }
-        viewModel.files.observe(viewLifecycleOwner) {
-            when (it.status) {
-                Status.SUCCESS -> {
-                    AppLogger.errorMessage(TAG, it.data?.size.toString())
-                }
-            }
-        }
+
     }
 
     override fun onClick(p0: View?) {
-        var bucketId = p0?.getTag() as Int
-        viewModel.bucketId.value=bucketId.toString()
+        var position = p0?.getTag() as Int
+        viewModel.fileType.value = viewModel.allBuckets.value?.data?.get(position)?.fileType
+        viewModel.bucketId.value = viewModel.allBuckets.value?.data?.get(position)?.id.toString()
         NavHostFragment.findNavController(this).navigate(R.id.media_file_list)
         AppLogger.errorMessage(TAG, "bucketId")
 
