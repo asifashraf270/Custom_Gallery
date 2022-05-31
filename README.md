@@ -1,5 +1,6 @@
 # Custom_Gallery
-
+**#KOTLIN **
+<br/>
  **#Single Screen Architecture using Navigation Compenet** 
  <br>
  **#Hilt for dependency Injection**
