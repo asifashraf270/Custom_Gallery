@@ -1,12 +1,19 @@
 # Custom_Gallery
 
- **#Single Screen Architecture using Navigation Compenet**
-#Hilt for dependency Injection <br/>
-#MVVM architecture <br/>
-#Content Provider for Gallery Related Work <br/>
-#Data binding for showing details  <br/>
-#Runtime permissions <br/>
-#Kotlin Coroutines for Async Content Providers call <br/>
+ **#Single Screen Architecture using Navigation Compenet** 
+ <br>
+ **#Hilt for dependency Injection**
+ <br/>
+ **#MVVM architecture **
+ <br/>
+ **#Content Provider for Gallery Related Work **
+ <br/>
+ **#Data binding for showing details **
+ <br/>
+** #Runtime permissions **
+<br/>
+**#Kotlin Coroutines for Async Content Providers call**
+ <br/>
 
 <br/><br/>
 #one Activity with two fragments  <br/>
