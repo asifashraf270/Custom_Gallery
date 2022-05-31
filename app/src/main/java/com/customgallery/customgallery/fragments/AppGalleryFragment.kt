@@ -53,20 +53,27 @@ class AppGallery : Fragment(), View.OnClickListener {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         activity?.let {
-            when{
-                PermissionUtils.isExternalStoragePermission(activity!!)->{
-                    AppLogger.errorMessage(TAG,"Permission Granted")
-                    viewModel.loadAllBuckets.value = ""
+            when {
+                PermissionUtils.isExternalStoragePermission(activity!!) -> {
+                    AppLogger.errorMessage(TAG, "Permission Granted")
+                    if (viewModel.loadAllBuckets.value == null)
+                        viewModel.loadAllBuckets.value = ""
 
                 }
-                PermissionUtils.shouldShowRationale(activity!!)->{
-                    AppLogger.errorMessage(TAG,"Open Setting")
-                    Toast.makeText(activity,"Please open setting and allow Permission to Proceed",Toast.LENGTH_LONG).show()
+                PermissionUtils.shouldShowRationale(activity!!) -> {
+                    AppLogger.errorMessage(TAG, "Open Setting")
+                    Toast.makeText(
+                        activity,
+                        "Please open setting and allow Permission to Proceed",
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
-                else->{
-                    AppLogger.errorMessage(TAG,"Request Permission")
-                    requestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
-                        10000)
+                else -> {
+                    AppLogger.errorMessage(TAG, "Request Permission")
+                    requestPermissions(
+                        arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
+                        10000
+                    )
                 }
 
             }
@@ -95,7 +102,7 @@ class AppGallery : Fragment(), View.OnClickListener {
     fun eventObserverListener() {
 
         viewModel.allBuckets.observe(viewLifecycleOwner) {
-            if(it==null)return@observe
+            if (it == null) return@observe
             when (it.status) {
                 Status.SUCCESS -> {
                     binding.progressBarr.visibility = View.GONE
@@ -124,16 +131,20 @@ class AppGallery : Fragment(), View.OnClickListener {
         AppLogger.errorMessage(TAG, "bucketId")
 
     }
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
-        permissions: Array<String>, grantResults: IntArray) {
+        permissions: Array<String>, grantResults: IntArray
+    ) {
         if (requestCode == 10000) {
-            if (permissions[0]  == Manifest.permission.READ_EXTERNAL_STORAGE &&
-                grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            if (permissions[0] == Manifest.permission.READ_EXTERNAL_STORAGE &&
+                grantResults[0] == PackageManager.PERMISSION_GRANTED
+            ) {
                 // Permission is granted, do your work
-                viewModel.loadAllBuckets.value = ""
+                if (viewModel.loadAllBuckets.value == null)
+                    viewModel.loadAllBuckets.value = ""
 
-                AppLogger.errorMessage(TAG,"Permission Granted")
+                AppLogger.errorMessage(TAG, "Permission Granted")
             }
         }
     }

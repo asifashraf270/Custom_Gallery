@@ -39,16 +39,16 @@ class MediaFilesListFragment : Fragment() {
         setUpAdapter()
         setUpEventObserver()
     }
-    fun setUpAdapter()
-    {
-        adapter= MediaFilesAdapter()
-        binding.mediaFile.layoutManager=GridLayoutManager(context,4)
-        binding.mediaFile.adapter=adapter;
+
+    fun setUpAdapter() {
+        adapter = MediaFilesAdapter()
+        binding.mediaFile.layoutManager = GridLayoutManager(context, 4)
+        binding.mediaFile.adapter = adapter;
     }
 
     fun setUpEventObserver() {
         viewModel.files.observe(viewLifecycleOwner) {
-            AppLogger.errorMessage(TAG,"files")
+            AppLogger.errorMessage(TAG, "files")
             when (it.status) {
                 Status.SUCCESS -> {
                     it.data?.let { it1 -> adapter.updateMediaList(it1) }
@@ -56,6 +56,11 @@ class MediaFilesListFragment : Fragment() {
                 }
             }
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        AppLogger.errorMessage(TAG, "onPause")
     }
 
 

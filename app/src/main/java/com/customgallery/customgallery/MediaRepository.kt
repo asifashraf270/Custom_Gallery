@@ -426,7 +426,7 @@ class MediaRepository @Inject constructor(
             var allImages = Bucket()
             allImages.id = -1
             allImages.name = "All images"
-            allImages.fileType = 1
+            allImages.fileType = LocalMediaFile.IMAGE_TYPE
             allImages.filesCount = getAllFilesCount(MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
             AppLogger.errorMessage(TAG, allImages.filesCount.toString())
             allImages.imageThumbnail = imagesBuckets?.get(0)?.imageThumbnail
@@ -434,7 +434,7 @@ class MediaRepository @Inject constructor(
             var allVideos = Bucket()
             allVideos.id = -2;
             allVideos.name = "All Videos"
-            allVideos.fileType = 2
+            allVideos.fileType = LocalMediaFile.VIDEO_TYPE
             allVideos.filesCount = getAllFilesCount(MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
             allVideos.imageThumbnail = videoBuckets?.get(0)?.imageThumbnail
             allVideos.videoThumbnail = videoBuckets?.get(0)?.videoThumbnail
