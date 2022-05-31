@@ -14,6 +14,9 @@ import com.customgallery.utilities.Resource
 import com.customgallery.utilities.appgalleryutils.Bucket
 import com.customgallery.utilities.appgalleryutils.LocalMediaFile
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -132,7 +135,7 @@ class MediaRepository @Inject constructor(
         return videoBucketList
     }
 
-    fun getAllImagesCount(contentUri: Uri): Int {
+    fun getAllFilesCount(contentUri: Uri): Int {
         context.contentResolver.query(contentUri, null, null, null, null)
             .use { cursor -> return if (cursor == null || cursor.moveToFirst() === false) 0 else cursor.count }
     }
@@ -208,6 +211,7 @@ class MediaRepository @Inject constructor(
 
     @SuppressLint("Range")
     fun getAllImagesFile(): List<LocalMediaFile>? {
+        val buckets: MutableList<LocalMediaFile> = ArrayList<LocalMediaFile>()
         val images = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
         val projection = arrayOf(
             MediaStore.Images.Media.BUCKET_ID,
@@ -224,31 +228,149 @@ class MediaRepository @Inject constructor(
             null,  // Selection arguments (none)
             BUCKET_ORDER_BY // Ordering
         )
-        val buckets: MutableList<LocalMediaFile> = ArrayList<LocalMediaFile>()
         if (cursor == null) {
             return buckets
         }
-        while (cursor?.moveToNext()) {
-            val bucketIdColumnIndex = cursor.getColumnIndex(MediaStore.Images.Media.BUCKET_ID)
+        if (cursor != null) {
+            while (cursor?.moveToNext() == true) {
+                val bucketIdColumnIndex = cursor.getColumnIndex(MediaStore.Images.Media.BUCKET_ID)
+                val bucketColumnIndex =
+                    cursor.getColumnIndex(MediaStore.Images.Media.BUCKET_DISPLAY_NAME)
+                val dataColumnIndex = cursor.getColumnIndex(MediaStore.Images.Media.DATA)
+                val idColumnIndex =
+                    cursor.getInt(cursor.getColumnIndex(MediaStore.Images.Media._ID))
+                val date =
+                    cursor.getString(cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATE_ADDED))
+                val b = Bucket()
+                // Log.e(TAG, idColumnIndex + "...file id");
+                val thumbnail = cursor.getColumnIndex(MediaStore.Images.Thumbnails.DATA)
+                val thumbnailPath = cursor.getString(thumbnail)
+                val localMediaFile = LocalMediaFile(
+                    cursor.getInt(bucketIdColumnIndex),
+                    cursor.getString(dataColumnIndex),
+                    LocalMediaFile.IMAGE_TYPE,
+                    null,
+                    idColumnIndex,
+                    "" /*Uri.fromFile(new File(thumbnailPath)).toString()*/
+                )
+                localMediaFile.date = date;
+
+                buckets.add(localMediaFile)
+            }
+            cursor.close()
+        }
+
+
+        return buckets
+    }
+
+    @SuppressLint("Range")
+    fun getImageFilesFromBucket(id: String): List<LocalMediaFile> {
+        val images = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+        val projection = arrayOf(
+            MediaStore.Images.Media.BUCKET_ID,
+            MediaStore.Images.Media.BUCKET_DISPLAY_NAME,
+            MediaStore.Images.Media.DATA,
+            MediaStore.Images.Media._ID,
+            MediaStore.Images.ImageColumns.DATE_ADDED
+        )
+        val BUCKET_ORDER_BY = MediaStore.Images.Media._ID + " DESC"
+        val cursor = context.contentResolver.query(
+            images,
+            projection,  // Which columns to return
+            MediaStore.Images.Media.BUCKET_ID + "=?",
+            arrayOf(id),  // Which rows to return (all rows)
+            null,  // Selection arguments (none)
+            null // Ordering
+        )
+        val imagewsFile: MutableList<LocalMediaFile> = ArrayList<LocalMediaFile>()
+
+        if (cursor != null) {
+            while (cursor?.moveToNext()) {
+                val bucketIdColumnIndex = cursor.getColumnIndex(MediaStore.Images.Media.BUCKET_ID)
+                val bucketColumnIndex =
+                    cursor.getColumnIndex(MediaStore.Images.Media.BUCKET_DISPLAY_NAME)
+                val dataColumnIndex = cursor.getColumnIndex(MediaStore.Images.Media.DATA)
+                val idColumnIndex =
+                    cursor.getInt(cursor.getColumnIndex(MediaStore.Images.Media._ID))
+                val date =
+                    cursor.getString(cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATE_ADDED))
+                val b = Bucket()
+                // Log.e(TAG, idColumnIndex + "...file id");
+                val thumbnail = cursor.getColumnIndex(MediaStore.Images.Thumbnails.DATA)
+                val thumbnailPath = cursor.getString(thumbnail)
+                val localMediaFile = LocalMediaFile(
+                    cursor.getInt(bucketIdColumnIndex),
+                    cursor.getString(dataColumnIndex),
+                    LocalMediaFile.IMAGE_TYPE,
+                    null,
+                    idColumnIndex,
+                    "" /*Uri.fromFile(new File(thumbnailPath)).toString()*/
+                )
+                localMediaFile.date = date;
+
+                imagewsFile.add(localMediaFile)
+            }
+            cursor.close()
+
+        }
+        return imagewsFile
+    }
+
+    @SuppressLint("Range")
+    fun getVideosFilesFromBucket(id: String): List<LocalMediaFile> {
+        val images = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+        val projection = arrayOf(
+            MediaStore.Video.Media.BUCKET_ID,
+            MediaStore.Video.Media.BUCKET_DISPLAY_NAME,
+            MediaStore.Video.Media.DATA,
+            MediaStore.Video.Media._ID,
+            MediaStore.Video.VideoColumns.DURATION,
+            MediaStore.Video.VideoColumns.DATE_ADDED,
+            MediaStore.Video.Thumbnails.DATA
+        )
+        val arg = arrayOf("5000")
+        val BUCKET_ORDER_BY = MediaStore.Video.Media._ID + " DESC"
+        val cursor = context.contentResolver.query(
+            images,
+            projection,  // Which columns to return
+            MediaStore.Images.Media.BUCKET_ID + "=?",
+            arrayOf(id),  // Which rows to return (all rows)
+            null,  // Selection arguments (none)
+            null  // Ordering0
+        )
+        val buckets: MutableList<LocalMediaFile> = ArrayList()
+        if (cursor == null) {
+            return buckets
+        }
+        while (cursor.moveToNext()) {
+            val bucketIdColumnIndex = cursor.getColumnIndex(MediaStore.Video.Media.BUCKET_ID)
             val bucketColumnIndex =
-                cursor.getColumnIndex(MediaStore.Images.Media.BUCKET_DISPLAY_NAME)
-            val dataColumnIndex = cursor.getColumnIndex(MediaStore.Images.Media.DATA)
-            val idColumnIndex = cursor.getInt(cursor.getColumnIndex(MediaStore.Images.Media._ID))
+                cursor.getColumnIndex(MediaStore.Video.Media.BUCKET_DISPLAY_NAME)
+            val dataColumnIndex = cursor.getColumnIndex(MediaStore.Video.Media.DATA)
+            val thumbnail = cursor.getColumnIndex(MediaStore.Video.Thumbnails.DATA)
+//            val thumbnailPath = cursor.getString(thumbnail)
+            val idColumnIndex = cursor.getInt(cursor.getColumnIndex(MediaStore.Video.Media._ID))
+            val videoDuration =
+                cursor.getString(cursor.getColumnIndex(MediaStore.Video.VideoColumns.DURATION))
             val date =
-                cursor.getString(cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATE_ADDED))
-            val b = Bucket()
-            // Log.e(TAG, idColumnIndex + "...file id");
-            val thumbnail = cursor.getColumnIndex(MediaStore.Images.Thumbnails.DATA)
-            val thumbnailPath = cursor.getString(thumbnail)
+                cursor.getString(cursor.getColumnIndex(MediaStore.Video.VideoColumns.DATE_ADDED))
+            var thumbnailBitmap = MediaStore.Video.Thumbnails.getThumbnail(
+                contentResolver,
+                idColumnIndex.toLong(),
+                MediaStore.Video.Thumbnails.MINI_KIND,
+                null
+            )
             val localMediaFile = LocalMediaFile(
                 cursor.getInt(bucketIdColumnIndex),
                 cursor.getString(dataColumnIndex),
-                LocalMediaFile.IMAGE_TYPE,
-                null,
+                LocalMediaFile.VIDEO_TYPE,
+                thumbnailBitmap,
                 idColumnIndex,
-                "" /*Uri.fromFile(new File(thumbnailPath)).toString()*/
+                ""
             )
-            localMediaFile.date = date;
+            localMediaFile.videoDuration = videoDuration;
+            localMediaFile.date = date
 
             buckets.add(localMediaFile)
         }
@@ -259,73 +381,69 @@ class MediaRepository @Inject constructor(
 
     fun getFilesWithId(id: String, types: Int): MutableLiveData<Resource<List<LocalMediaFile>>> {
         var filesList = MediatorLiveData<Resource<List<LocalMediaFile>>>()
-        filesList.value = Resource.loading()
-        var allImages = getAllImagesFile()
-        var allVideos = getAllVideoFiles()
-        when (id.toInt()) {
-            -1 -> {
-                filesList.value = Resource.success(allImages, "Success")
-            }
-            -2 -> {
-                filesList.value = Resource.success(allVideos, "Success")
-            }
-            else -> {
-                when (types) {
-                    1 -> {
-                        filesList.value =
-                            Resource.success(allImages?.let { getFiles(id.toInt(), it) }, "Success")
-                    }
-                    2 -> {
-                        filesList.value =
-                            Resource.success(allVideos?.let { getFiles(id.toInt(), it) }, "success")
-                    }
+        CoroutineScope(Dispatchers.IO).launch {
+            filesList.postValue(Resource.loading())
 
+            when (id.toInt()) {
+                -1 -> {
+                    filesList.postValue(Resource.success(getAllImagesFile(), "Success"))
                 }
-            }
+                -2 -> {
+                    filesList.postValue(Resource.success(getAllVideoFiles(), "Success"))
+                }
+                else -> {
+                    when (types) {
+                        1 -> {
+                            filesList.postValue(
+                                Resource.success(getImageFilesFromBucket(id), "Success")
+                            )
+                        }
+                        2 -> {
+                            filesList.postValue(
+                                Resource.success(getVideosFilesFromBucket(id), "Success")
+                            )
+                        }
 
+                    }
+                }
+
+            }
         }
+
 
         return filesList
 
     }
 
-    fun getFiles(id: Int, filesList: List<LocalMediaFile>): List<LocalMediaFile> {
-        var list = mutableListOf<LocalMediaFile>()
-        for (localMedia in filesList) {
-            if (localMedia.bucketId == id) {
-                list.add(localMedia)
-            }
-        }
-        return list
-    }
-
 
     fun getAllBuckets(): MediatorLiveData<Resource<List<Bucket>>> {
         var bucketsList = MediatorLiveData<Resource<List<Bucket>>>()
-        bucketsList.value=Resource.loading()
-        var buckets: MutableList<Bucket> = mutableListOf()
-        var imagesBuckets = getImageBuckets()
-        var videoBuckets = getVideoBuckets()
-        var allImages = Bucket()
-        allImages.id = -1
-        allImages.name = "All images"
-        allImages.fileType = 1
-        allImages.filesCount = getAllImagesCount(MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-        AppLogger.errorMessage(TAG, allImages.filesCount.toString())
-        allImages.imageThumbnail = imagesBuckets?.get(0)?.imageThumbnail
-        buckets.add(allImages)
-        var allVideos = Bucket()
-        allVideos.id = -2;
-        allVideos.name = "All Videos"
-        allVideos.fileType = 2
-        allVideos.filesCount = getAllImagesCount(MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
-        allVideos.imageThumbnail = videoBuckets?.get(0)?.imageThumbnail
-        allVideos.videoThumbnail = videoBuckets?.get(0)?.videoThumbnail
-        buckets.add(allVideos)
-        imagesBuckets?.let { buckets.addAll(it) }
-        videoBuckets?.let { buckets.addAll(it) }
 
-        bucketsList.value = Resource.success(buckets, "Success")
+        CoroutineScope(Dispatchers.IO).launch {
+            var buckets: MutableList<Bucket> = mutableListOf()
+            var imagesBuckets = getImageBuckets()
+            var videoBuckets = getVideoBuckets()
+            var allImages = Bucket()
+            allImages.id = -1
+            allImages.name = "All images"
+            allImages.fileType = 1
+            allImages.filesCount = getAllFilesCount(MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+            AppLogger.errorMessage(TAG, allImages.filesCount.toString())
+            allImages.imageThumbnail = imagesBuckets?.get(0)?.imageThumbnail
+            buckets.add(allImages)
+            var allVideos = Bucket()
+            allVideos.id = -2;
+            allVideos.name = "All Videos"
+            allVideos.fileType = 2
+            allVideos.filesCount = getAllFilesCount(MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
+            allVideos.imageThumbnail = videoBuckets?.get(0)?.imageThumbnail
+            allVideos.videoThumbnail = videoBuckets?.get(0)?.videoThumbnail
+            buckets.add(allVideos)
+            imagesBuckets?.let { buckets.addAll(it) }
+            videoBuckets?.let { buckets.addAll(it) }
+            bucketsList.postValue(Resource.success(buckets, "Success"))
+        }
+
         return bucketsList
 
     }
