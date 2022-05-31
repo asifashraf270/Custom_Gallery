@@ -1,6 +1,6 @@
 # Custom_Gallery
 
-#Single Screen Architecture using Navigation Compenet
+#Single Screen Architecture using Navigation Compenet\n
 #Hilt for dependency Injection
 #MVVM architecture 
 #Content Provider for Gallery Related Work
